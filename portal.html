@@ -82,7 +82,7 @@
         async function fetchDonors() {
             const grid = document.getElementById('donor-grid');
             try {
-                const response = await fetch('https://e-blood-donation.onrender.com/api/donors');
+                const response = await fetch('/api/donors');
                 const donors = await response.json();
                 grid.innerHTML = ''; 
 
@@ -121,7 +121,7 @@
         async function fetchEmergencies() {
             const grid = document.getElementById('emergency-grid');
             try {
-                const response = await fetch('https://e-blood-donation.onrender.com/api/emergencies');
+                const response = await fetch('/api/emergencies');
                 const list = await response.json();
                 grid.innerHTML = '';
 
@@ -158,7 +158,7 @@
             if (!confirm("🚨 Are you sure you want to permanently delete this donor?")) return;
             
             try {
-                const response = await fetch(`https://e-blood-donation.onrender.com/api/donors/${id}`, { 
+                const response = await fetch(`/api/donors/${id}`, { 
                     method: 'DELETE', 
                     headers: { 'Authorization': adminToken } 
                 });
@@ -194,7 +194,7 @@
             };
             
             try {
-                const response = await fetch(`https://e-blood-donation.onrender.com/api/donors/${id}`, { 
+                const response = await fetch(`/api/donors/${id}`, { 
                     method: 'PUT', 
                     headers: { 
                         'Content-Type': 'application/json', 
