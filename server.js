@@ -6,34 +6,39 @@ const http = require('http');
 const { Server } = require('socket.io'); 
 const jwt = require('jsonwebtoken'); 
 const path = require('path');
+
 const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, { cors: { origin: "*" } });
 
-// Serve frontend static files from the root directory
-app.use(express.static(__dirname));
-
+// 🛡️ Core Global Middlewares
+app.use(express.json()); // 🔥 FIXED: Restored missing JSON parser
 app.use(cors({ origin: "*" }));
 
-// Serve frontend static files
-app.use(express.static(__dirname));
-
-// 📑 Explicitly send index.html when anyone visits the main URL
+// 📑 Explicit Static HTML Routing (Highly Secure: Prevents leaking server.js secrets)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+app.get('/login.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+app.get('/portal.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'portal.html'));
+});
+
+// Cloud Database Connection
 mongoose.connect('mongodb+srv://VineetKumar:vineetkumar006@e-blood-donation.pto9mdf.mongodb.net/?appName=E-Blood-Donation')
     .then(() => console.log("✅ Database Connected"))
     .catch(err => console.error("❌ Connection Failed:", err));
 
 // --- SCHEMAS ---
 
-// NEW: User Account Schema
 const userSchema = new mongoose.Schema({
     email: { type: String, unique: true },
-    password: String // (In a real app, this would be hashed with bcrypt)
+    password: String 
 });
 const User = mongoose.model('User', userSchema);
 
@@ -70,7 +75,7 @@ const verifyToken = (req, res, next) => {
 // 🛡️ API ROUTES
 // ==========================================
 
-// 1. NEW: USER SIGNUP
+// 1. USER SIGNUP
 app.post('/api/auth/signup', async (req, res) => {
     try {
         const newUser = new User({ email: req.body.email, password: req.body.password });
@@ -81,17 +86,20 @@ app.post('/api/auth/signup', async (req, res) => {
     }
 });
 
-// 2. NEW: USER LOGIN
+// 2. USER LOGIN
 app.post('/api/auth/login', async (req, res) => {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email, password });
-    
-    if (user) {
-        // Generate a token for the user
-        const token = jwt.sign({ id: user._id, role: "user", email: user.email }, JWT_SECRET, { expiresIn: 86400 });
-        res.status(200).json({ auth: true, token: token, email: user.email });
-    } else {
-        res.status(401).json({ error: "Invalid Email or Password" });
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email, password });
+        
+        if (user) {
+            const token = jwt.sign({ id: user._id, role: "user", email: user.email }, JWT_SECRET, { expiresIn: 86400 });
+            res.status(200).json({ auth: true, token: token, email: user.email });
+        } else {
+            res.status(401).json({ error: "Invalid Email or Password" });
+        }
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error during login." });
     }
 });
 
@@ -158,7 +166,6 @@ app.put('/api/donors/:id', verifyToken, async (req, res) => {
 });
 
 app.get('/api/seed', async (req, res) => {
-    // Dummy Donors and Emergencies...
     const dummyDonors = [{ fullName: "Arjun Sharma", bloodGroup: "O+", email: "arjun@example.com", phone: "+91 98765 11111", city: "Amritsar" }];
     try {
         await Donor.deleteMany({});
