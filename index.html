@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Blood | Minimalist Connect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #fafafa; color: #111827; }
+        .float-slow { animation: float 6s ease-in-out infinite; }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+        .fade-in { animation: fadeIn 0.3s ease-in-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+    
+    <script>
+        if (!localStorage.getItem('userToken')) {
+            window.location.href = 'login.html';
+        }
+    </script>
+</head>
+<body class="antialiased selection:bg-red-200 selection:text-red-900">
+
+    <nav class="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center bg-transparent relative z-20">
+        <div class="flex items-center gap-2">
+            <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" /></svg>
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900">E-Blood.</h1>
+        </div>
+        <div class="hidden md:flex space-x-8 text-sm font-medium text-gray-600 items-center">
+            <a href="#" class="hover:text-red-600 transition-colors">Home</a>
+            <a href="#portal" onclick="switchTab('donate')" class="hover:text-red-600 transition-colors">Donate</a>
+            
+            <button onclick="adminLogin()" class="text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1 font-bold">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                Admin
+            </button>
+
+            <button onclick="logout()" class="text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1 font-bold">
+                Logout
+            </button>
+        </div>
+        <a href="portal.html" target="_blank" class="bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm font-medium hover:bg-gray-800 transition-colors">
+            Access Portal
+        </a>
+    </nav>
+
+    <main class="relative max-w-7xl mx-auto px-6 pt-12 pb-24 grid lg:grid-cols-2 gap-16 items-center min-h-[85vh]">
+        <div class="space-y-8 z-10">
+            <div class="space-y-4">
+                <span class="text-red-600 font-semibold tracking-wider uppercase text-sm">The Life Network</span>
+                <h2 class="text-6xl md:text-7xl font-bold leading-[1.1] tracking-tight text-gray-900">Give blood.<br>Save <span class="text-red-600">lives.</span></h2>
+                <p class="text-xl text-gray-500 max-w-lg leading-relaxed">Whether you are here to donate to the community or request emergency blood for a patient, you are in the right place.</p>
+            </div>
+            <div class="pt-8">
+                <svg class="w-24 h-24 text-red-500 float-slow drop-shadow-xl" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" /></svg>
+            </div>
+        </div>
+
+        <div id="portal" class="bg-white p-10 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 z-10 relative">
+            <div class="flex gap-6 mb-8 border-b border-gray-100 pb-1">
+                <button id="tab-donate" onclick="switchTab('donate')" class="text-lg font-bold text-red-600 border-b-2 border-red-600 pb-2 transition-all">Donate Blood</button>
+                <button id="tab-request" onclick="switchTab('request')" class="text-lg font-medium text-gray-400 hover:text-gray-900 pb-2 transition-all">Request Blood</button>
+            </div>
+
+            <div id="form-donate" class="space-y-4 fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input id="donorName" type="text" placeholder="Full Name" class="w-full bg-gray-50 border border-gray-200 p-3.5 rounded-xl focus:ring-2 focus:ring-red-500 outline-none">
+                    <select id="donorGroup" class="w-full bg-gray-50 border border-gray-200 p-3.5 rounded-xl focus:ring-2 focus:ring-red-500 outline-none cursor-pointer">
+                        <option value="" disabled selected>Blood Group</option>
+                        <option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="O+">O+</option><option value="O-">O-</option><option value="AB+">AB+</option><option value="AB-">AB-</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input id="donorEmail" type="email" placeholder="Email Address" class="w-full bg-gray-50 border border-gray-200 p-3.5 rounded-xl focus:ring-2 focus:ring-red-500 outline-none">
+                    <input id="donorPhone" type="tel" placeholder="Phone Number" class="w-full bg-gray-50 border border-gray-200 p-3.5 rounded-xl focus:ring-2 focus:ring-red-500 outline-none">
+                </div>
+                <input id="donorCity" type="text" placeholder="City / Region" class="w-full bg-gray-50 border border-gray-200 p-3.5 rounded-xl focus:ring-2 focus:ring-red-500 outline-none">
+                <button onclick="registerDonor()" class="w-full bg-red-600 text-white font-semibold py-4 rounded-xl mt-2 hover:bg-red-700 transition-all shadow-md">Complete Registration</button>
+            </div>
+
+            <div id="form-request" class="space-y-4 hidden fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input id="reqHospital" type="text" placeholder="Hospital Name" class="w-full bg-gray-50 border border-gray-200 p-3.5 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none">
+                    <select id="reqGroup" class="w-full bg-gray-50 border border-gray-200 p-3.5 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none cursor-pointer">
+                        <option value="" disabled selected>Blood Group Needed</option>
+                        <option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="O+">O+</option><option value="O-">O-</option><option value="AB+">AB+</option><option value="AB-">AB-</option>
+                    </select>
+                </div>
+                <select id="reqUrgency" class="w-full bg-gray-50 border border-gray-200 p-3.5 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none cursor-pointer">
+                    <option value="Critical">🔴 Critical (Needed immediately)</option>
+                    <option value="Stable">🟡 Stable (Needed within 24hrs)</option>
+                </select>
+                <input id="reqLocation" type="text" placeholder="Ward / Location" class="w-full bg-gray-50 border border-gray-200 p-3.5 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none">
+                <button onclick="requestBlood()" class="w-full bg-gray-900 text-white font-semibold py-4 rounded-xl mt-2 hover:bg-black transition-all shadow-md">Broadcast Emergency</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Auto-fill email if available
+        window.onload = () => {
+            const savedEmail = localStorage.getItem('userEmail');
+            if(savedEmail) document.getElementById('donorEmail').value = savedEmail;
+        };
+
+        function logout() {
+            localStorage.removeItem('userToken');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('adminToken');
+            window.location.href = 'login.html';
+        }
+
+        async function adminLogin() {
+            const pwd = prompt("Enter Admin Password:");
+            if (!pwd) return;
+            try {
+                const res = await fetch('http://127.0.0.1:5000/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pwd })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('adminToken', data.token);
+                    alert("✅ Logged in successfully! Click 'Access Portal' to manage donors.");
+                } else { alert("❌ Incorrect Password"); }
+            } catch (err) { alert("Backend offline."); }
+        }
+
+        function switchTab(tab) {
+            document.getElementById('tab-donate').className = tab === 'donate' ? "text-lg font-bold text-red-600 border-b-2 border-red-600 pb-2 transition-all" : "text-lg font-medium text-gray-400 hover:text-gray-900 pb-2 transition-all";
+            document.getElementById('tab-request').className = tab === 'request' ? "text-lg font-bold text-gray-900 border-b-2 border-gray-900 pb-2 transition-all" : "text-lg font-medium text-gray-400 hover:text-red-600 pb-2 transition-all";
+            document.getElementById('form-donate').classList.toggle('hidden', tab !== 'donate');
+            document.getElementById('form-request').classList.toggle('hidden', tab !== 'request');
+        }
+
+        const socket = io('http://127.0.0.1:5000');
+        socket.on('new_emergency', (data) => alert(`🚨 URGENT: Blood Group ${data.requiredGroup} needed at ${data.hospitalName}! Urgency: ${data.urgency}`));
+
+        async function registerDonor() {
+            const data = { fullName: document.getElementById('donorName').value, bloodGroup: document.getElementById('donorGroup').value, email: document.getElementById('donorEmail').value, phone: document.getElementById('donorPhone').value, city: document.getElementById('donorCity').value };
+            if (!data.fullName || !data.bloodGroup || !data.email) return alert('Please complete required fields.');
+            try {
+                const res = await fetch('http://127.0.0.1:5000/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                res.ok ? alert('✨ Successfully registered!') : alert('❌ Error registering');
+            } catch (err) { alert('Backend offline.'); }
+        }
+
+        async function requestBlood() {
+            const data = { hospitalName: document.getElementById('reqHospital').value, requiredGroup: document.getElementById('reqGroup').value, urgency: document.getElementById('reqUrgency').value, location: document.getElementById('reqLocation').value };
+            if (!data.hospitalName || !data.requiredGroup) return alert('Hospital Name and Blood Group required.');
+            
+            // USE THE ACTUAL USER TOKEN TO AUTHORIZE THE BROADCAST
+            const token = localStorage.getItem('userToken');
+            
+            try {
+                const res = await fetch('http://127.0.0.1:5000/api/emergencies', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'Authorization': token }, 
+                    body: JSON.stringify(data) 
+                });
+                res.ok ? alert('📡 Emergency Broadcast Sent!') : alert('❌ Error. Ensure you are logged in.');
+            } catch (err) { alert('Backend offline.'); }
+        }
+    </script>
+</body>
+</html>

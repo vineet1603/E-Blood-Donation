@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Blood Bank | Access Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #fafafa; color: #111827; }</style>
+</head>
+<body class="antialiased relative">
+
+    <nav class="bg-white border-b border-gray-100 px-8 py-5 flex justify-between items-center sticky top-0 z-40 shadow-sm">
+        <a href="index.html" class="flex items-center gap-2 hover:opacity-75 transition-opacity cursor-pointer">
+            <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" /></svg>
+            <h1 class="text-xl font-bold tracking-tight text-gray-900">E-Blood <span class="font-normal text-gray-400">| Control Center</span></h1>
+        </a>
+        <div class="flex items-center gap-4">
+            <span id="adminBadge" class="hidden bg-gray-900 text-white text-xs font-bold px-3 py-1 rounded-full">Admin Mode Active</span>
+            <button onclick="refreshDashboard()" class="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-2 active:scale-95">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                Refresh Board
+            </button>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-2 gap-12">
+        
+        <section>
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">Available Donor Directory</h2>
+                <p class="text-sm text-gray-500 mt-1">Hospitals can review listed profiles and make direct contact.</p>
+            </div>
+            <div id="donor-grid" class="space-y-4">
+                <div class="text-center py-6 text-gray-400 animate-pulse">Loading directory data...</div>
+            </div>
+        </section>
+
+        <section>
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">Live Hospital Requirements</h2>
+                <p class="text-sm text-gray-500 mt-1">Donors: Review where your group is critically needed right now.</p>
+            </div>
+            <div id="emergency-grid" class="space-y-4">
+                <div class="text-center py-6 text-gray-400 animate-pulse">Loading active demands...</div>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="editModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 backdrop-blur-sm transition-all">
+        <div class="bg-white p-8 rounded-2xl w-full max-w-md shadow-2xl">
+            <h3 class="text-2xl font-bold mb-1 text-gray-900">Edit Donor Details</h3>
+            <p class="text-sm text-gray-500 mb-6">Update contact information for this donor.</p>
+            
+            <input type="hidden" id="editId">
+            
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Phone Number</label>
+            <input id="editPhone" type="text" class="w-full bg-gray-50 border border-gray-200 p-3.5 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none mb-4 transition-all">
+            
+            <label class="block text-sm font-semibold text-gray-700 mb-1">City / Location</label>
+            <input id="editCity" type="text" class="w-full bg-gray-50 border border-gray-200 p-3.5 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none mb-8 transition-all">
+            
+            <div class="flex gap-4">
+                <button onclick="closeEditModal()" class="flex-1 bg-gray-100 text-gray-700 hover:bg-gray-200 py-3.5 rounded-xl font-bold transition-all">Cancel</button>
+                <button onclick="saveEdit()" class="flex-1 bg-blue-600 text-white hover:bg-blue-700 py-3.5 rounded-xl font-bold shadow-md shadow-blue-500/30 transition-all">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const adminToken = localStorage.getItem('adminToken');
+        if (adminToken) {
+            document.getElementById('adminBadge').classList.remove('hidden');
+        }
+
+        function refreshDashboard() {
+            fetchDonors();
+            fetchEmergencies();
+        }
+
+        // --- Fetch & Render Donors ---
+        async function fetchDonors() {
+            const grid = document.getElementById('donor-grid');
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/donors');
+                const donors = await response.json();
+                grid.innerHTML = ''; 
+
+                if (donors.length === 0) {
+                    grid.innerHTML = `<div class="p-6 text-center text-gray-500 bg-white rounded-xl border">No registered donors listed.</div>`;
+                    return;
+                }
+
+                donors.forEach(donor => {
+                    // Check if Admin to show Edit/Delete buttons
+                    const adminButtons = adminToken ? `
+                        <button onclick="openEditModal('${donor._id}', '${donor.phone}', '${donor.city}')" class="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition-all">Edit</button>
+                        <button onclick="deleteDonor('${donor._id}')" class="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition-all">Delete</button>
+                    ` : '';
+
+                    grid.innerHTML += `
+                        <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:shadow-md transition-shadow">
+                            <div class="flex items-center gap-4">
+                                <div class="bg-red-50 text-red-600 font-extrabold text-lg w-12 h-12 flex items-center justify-center rounded-xl border border-red-100 shrink-0">${donor.bloodGroup}</div>
+                                <div>
+                                    <h4 class="font-bold text-gray-900">${donor.fullName}</h4>
+                                    <p class="text-xs text-gray-500">${donor.city} • ${donor.phone || 'No Phone'}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                                <a href="mailto:${donor.email}" class="bg-gray-100 text-gray-800 hover:bg-gray-200 px-4 py-2 rounded-lg text-xs font-bold transition-all text-center">Email</a>
+                                ${adminButtons}
+                            </div>
+                        </div>`;
+                });
+            } catch (err) { grid.innerHTML = `<p class="text-red-500">Error loading data. Ensure server is running.</p>`; }
+        }
+
+        // --- Fetch & Render Emergencies ---
+        async function fetchEmergencies() {
+            const grid = document.getElementById('emergency-grid');
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/emergencies');
+                const list = await response.json();
+                grid.innerHTML = '';
+
+                if (list.length === 0) {
+                    grid.innerHTML = `<div class="p-6 text-center text-gray-500 bg-white rounded-xl border">No open hospital requests listed.</div>`;
+                    return;
+                }
+
+                list.forEach(req => {
+                    const statusColor = req.urgency === 'Critical' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700';
+                    grid.innerHTML += `
+                        <div class="bg-white p-5 rounded-xl border-l-4 border-red-500 shadow-sm flex justify-between items-center hover:shadow-md transition-shadow">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${statusColor}">${req.urgency}</span>
+                                    <h4 class="font-bold text-gray-900">${req.hospitalName}</h4>
+                                </div>
+                                <p class="text-xs text-gray-500">📍 Location: ${req.location || 'Main Desk'}</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-[10px] font-bold text-gray-400 tracking-wider">NEEDS</div>
+                                <div class="text-2xl font-black text-red-600 leading-none mt-1">${req.requiredGroup}</div>
+                            </div>
+                        </div>`;
+                });
+            } catch (err) { grid.innerHTML = `<p class="text-red-500">Error loading data.</p>`; }
+        }
+
+        // ==========================================
+        // 🛡️ ADMIN ACTIONS (Edit & Delete)
+        // ==========================================
+
+        async function deleteDonor(id) {
+            if (!confirm("🚨 Are you sure you want to permanently delete this donor?")) return;
+            
+            try {
+                const response = await fetch(`http://127.0.0.1:5000/api/donors/${id}`, { 
+                    method: 'DELETE', 
+                    headers: { 'Authorization': adminToken } 
+                });
+                
+                if(response.ok) {
+                    refreshDashboard(); // Reload the list instantly
+                } else {
+                    alert("Unauthorized. Please log in as Admin from the homepage.");
+                }
+            } catch (err) { alert("Failed to connect to backend."); }
+        }
+
+        function openEditModal(id, phone, city) {
+            // Populate the modal fields
+            document.getElementById('editId').value = id;
+            document.getElementById('editPhone').value = phone !== 'undefined' ? phone : '';
+            document.getElementById('editCity').value = city;
+            
+            // Show the modal
+            document.getElementById('editModal').classList.replace('hidden', 'flex');
+        }
+
+        function closeEditModal() { 
+            // Hide the modal
+            document.getElementById('editModal').classList.replace('flex', 'hidden'); 
+        }
+
+        async function saveEdit() {
+            const id = document.getElementById('editId').value;
+            const data = { 
+                phone: document.getElementById('editPhone').value, 
+                city: document.getElementById('editCity').value 
+            };
+            
+            try {
+                const response = await fetch(`http://127.0.0.1:5000/api/donors/${id}`, { 
+                    method: 'PUT', 
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': adminToken 
+                    }, 
+                    body: JSON.stringify(data) 
+                });
+
+                if(response.ok) {
+                    closeEditModal();
+                    refreshDashboard(); // Reload the list to show new data
+                } else {
+                    alert("Unauthorized. Please log in as Admin.");
+                }
+            } catch (err) { alert("Failed to connect to backend."); }
+        }
+        
+        // Load data when page opens
+        window.onload = refreshDashboard;
+    </script>
+</body>
+</html>
