@@ -115,7 +115,7 @@
             const pwd = prompt("Enter Admin Password:");
             if (!pwd) return;
             try {
-                const res = await fetch('http://127.0.0.1:5000/api/admin/login', {
+                const res = await fetch('https://e-blood-donation.onrender.com/api/admin/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password: pwd })
@@ -135,14 +135,14 @@
             document.getElementById('form-request').classList.toggle('hidden', tab !== 'request');
         }
 
-        const socket = io('http://127.0.0.1:5000');
+        const socket = io('https://e-blood-donation.onrender.com');
         socket.on('new_emergency', (data) => alert(`🚨 URGENT: Blood Group ${data.requiredGroup} needed at ${data.hospitalName}! Urgency: ${data.urgency}`));
 
         async function registerDonor() {
             const data = { fullName: document.getElementById('donorName').value, bloodGroup: document.getElementById('donorGroup').value, email: document.getElementById('donorEmail').value, phone: document.getElementById('donorPhone').value, city: document.getElementById('donorCity').value };
             if (!data.fullName || !data.bloodGroup || !data.email) return alert('Please complete required fields.');
             try {
-                const res = await fetch('http://127.0.0.1:5000/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                const res = await fetch('https://e-blood-donation.onrender.com/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
                 res.ok ? alert('✨ Successfully registered!') : alert('❌ Error registering');
             } catch (err) { alert('Backend offline.'); }
         }
@@ -155,7 +155,7 @@
             const token = localStorage.getItem('userToken');
             
             try {
-                const res = await fetch('http://127.0.0.1:5000/api/emergencies', { 
+                const res = await fetch('https://e-blood-donation.onrender.com/api/emergencies', { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json', 'Authorization': token }, 
                     body: JSON.stringify(data) 
