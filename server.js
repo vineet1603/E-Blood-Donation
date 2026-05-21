@@ -5,24 +5,23 @@ const fs = require('fs');
 const http = require('http'); 
 const { Server } = require('socket.io'); 
 const jwt = require('jsonwebtoken'); 
-
+const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, { cors: { origin: "*" } });
 
-app.use(express.json());
+// Serve frontend static files from the root directory
+app.use(express.static(__dirname));
 
-app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    
-    // Instantly approve the browser's hidden security handshake
-    if (req.method === "OPTIONS") {
-        return res.sendStatus(200);
-    }
-    next();
+app.use(cors({ origin: "*" }));
+
+// Serve frontend static files
+app.use(express.static(__dirname));
+
+// 📑 Explicitly send index.html when anyone visits the main URL
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 mongoose.connect('mongodb+srv://VineetKumar:vineetkumar006@e-blood-donation.pto9mdf.mongodb.net/?appName=E-Blood-Donation')
